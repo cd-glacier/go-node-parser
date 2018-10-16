@@ -1,6 +1,7 @@
 package nodeparser
 
 import (
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -22,6 +23,37 @@ package main
 
 	for _, decl := range f.Decls {
 		return &decl, nil
+	}
+
+	return nil, nil
+}
+
+func ParseStmt(stmtStr string) (*ast.Stmt, error) {
+	header := `
+package main
+
+func main() {
+	`
+
+	footer := `
+}
+	`
+
+	f, err := parser.ParseFile(token.NewFileSet(), "main.go", header+stmtStr+footer, parser.AllErrors)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, decl := range f.Decls {
+		d, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			return nil, errors.New("Failed to convert to *ast.FuncDecl")
+		}
+
+		if len(d.Body.List) != 1 {
+			return nil, errors.New("stmt len is not 1")
+		}
+		return &d.Body.List[0], nil
 	}
 
 	return nil, nil
